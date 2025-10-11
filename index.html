@@ -771,7 +771,8 @@
         let targetPairs = 0;
         const MAX_FILES = 5;
         const PAGES_TO_SKIP_START = 20; // Skips title, contents, intro
-        const PAGES_TO_SKIP_END = 20;   // Skips index, bibliography
+        const PAGES_TO_SKIP_END = 20;
+        const batchSize =4// Skips index, bibliography
 
         // --- File Handling (Unchanged) ---
         function handleFiles(files) { const newlySelected = Array.from(files).filter(file => file.type === 'application/pdf'); if (pdfFiles.length + newlySelected.length > MAX_FILES) { updateStatus(`Error: Cannot select more than ${MAX_FILES} PDF files.`); return; } newlySelected.forEach(newFile => { if (!pdfFiles.some(existingFile => existingFile.name === newFile.name)) { pdfFiles.push(newFile); } }); renderFileList(); outputTextArea.value = ''; instructionDataset = []; currentPairs = 0; updateStatus(`Ready to process ${pdfFiles.length} file(s).`); updateButtonStates(); }
