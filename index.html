@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PDF to jsonl v1</title> <!-- Version bump -->
+
+    <style>
+
+        /* --- Google Font Import --- */
+
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap');
+
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap'); /* Keep Poppins for body */
+
+
+
+        body {
+
+            font-family: 'Poppins', sans-serif;
+
+            line-height: 1.6;
+
+            padding: 20px 10px;
+
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+
+            color: #e0e0e0;
+
+            min-height: calc(100vh - 20px);
+
+            overflow-x: hidden;
+
+            box-sizing: border-box;
+
+        }
+
+
+
+        .container {
+
+            max-width: 850px;
+
+            margin: auto;
+
+            padding: 30px;
+
+            border-radius: 15px;
+
+            background: rgba(255, 255, 255, 0.08);
+
+            backdrop-filter: blur(15px);
+
+            -webkit-backdrop-filter: blur(15px);
+
+            border: 1px solid rgba(255, 255, 255, 0.18);
+
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+            transition: all 0.3s ease;
+
+        }
+
+
+
+        h1 {
+
+            text-align: center;
+
+            color: #00bcd4;
+
+            font-weight: 600;
+
+            margin-bottom: 35px;
+
+            font-family: 'Orbitron', sans-serif;
+
+            letter-spacing: 1.5px;
+
+            text-shadow: 0 0 5px rgba(0, 188, 212, 0.5);
+
+        }
+
+
+
+        label {
+
+            display: block;
+
+            margin-bottom: 5px;
+
+            font-weight: 400;
+
+            color: #bdbdbd;
+
+            font-size: 0.9em;
+
+        }
+
+
+
+        input[type="text"],
+
+        input[type="password"],
+
+        input[type="number"],
+
+        select,
+
+        textarea {
+
+            width: 100%;
+
+            padding: 10px 12px;
+
+            margin-bottom: 10px;
+
+            border: 1px solid rgba(255, 255, 255, 0.2);
+
+            border-radius: 8px;
+
+            box-sizing: border-box;
+
+            background-color: rgba(0, 0, 0, 0.3);
+
+            color: #e0e0e0;
+
+            font-size: 0.95em;
+
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+            font-family: 'Poppins', sans-serif;
+
+        }
+
+
+
+        select {
+
+             appearance: none;
+
+             -webkit-appearance: none;
+
+             -moz-appearance: none;
+
+             background-image: url('data:image/svg+xml;utf8,<svg fill="%23bdbdbd" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+
+             background-repeat: no-repeat;
+
+             background-position: right 10px center;
+
+             background-size: 18px;
+
+             padding-right: 35px;
+
+        }
+
+
+
+        input[type="text"]::placeholder,
+
+        input[type="password"]::placeholder,
+
+        input[type="number"]::placeholder,
+
+        textarea::placeholder {
+
+            color: #757575;
+
+            opacity: 1;
+
+        }
+
+
+
+        input[type="text"]:focus,
+
+        input[type="password"]:focus,
+
+        input[type="number"]:focus,
+
+        select:focus,
+
+        textarea:focus {
+
+            outline: none;
+
+            border-color: #00bcd4;
+
+            box-shadow: 0 0 8px rgba(0, 188, 212, 0.3);
+
+        }
+
+
+
+        textarea {
+
+            height: 250px;
+
+            resize: vertical;
+
+            font-family: 'Courier New', Courier, monospace;
+
+            font-size: 0.95em;
+
+            line-height: 1.5;
+
+        }
+
+
+
+        button {
+
+            background-color: #00bcd4;
+
+            color: #111;
+
+            padding: 10px 15px;
+
+            border: none;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            margin-right: 8px;
+
+            font-size: 0.95em;
+
+            font-weight: 600;
+
+            margin-bottom: 10px;
+
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+
+            vertical-align: bottom;
+
+             font-family: 'Poppins', sans-serif;
+
+        }
+
+
+
+        button:hover:not(:disabled) {
+
+            background-color: #0097a7;
+
+            transform: translateY(-1px);
+
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+
+        }
+
+
+
+        button:active:not(:disabled) {
+
+            transform: translateY(0px);
+
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+
+        }
+
+
+
+        button:disabled {
+
+            background-color: #555;
+
+            color: #999;
+
+            cursor: not-allowed;
+
+            box-shadow: none;
+
+            transform: none;
+
+        }
+
+        select:disabled {
+
+             background-color: #555;
+
+             color: #999;
+
+             cursor: not-allowed;
+
+             opacity: 0.7;
+
+         }
+
+
+
+
+
+        #stopButton {
+
+            background-color: #e53935;
+
+            color: #fff;
+
+        }
+
+
+
+        #stopButton:hover:not(:disabled) {
+
+            background-color: #c62828;
+
+        }
+
+
+
+        #downloadButton {
+
+            background-color: #4caf50;
+
+            color: #fff;
+
+        }
+
+
+
+        #downloadButton:hover:not(:disabled) {
+
+            background-color: #388e3c;
+
+        }
+
+
+
+        .select-pdf-button-container {
+
+            margin-bottom: 20px;
+
+            text-align: left;
+
+        }
+
+
+
+        .select-pdf-button-container button {
+
+            background-color: transparent;
+
+            border: 1px solid #00bcd4;
+
+            color: #00bcd4;
+
+            box-shadow: none;
+
+            margin-right: 0;
+
+            display: inline-block;
+
+             padding: 10px 20px;
+
+        }
+
+
+
+        .select-pdf-button-container button:hover {
+
+            background-color: rgba(0, 188, 212, 0.1);
+
+            color: #26c6da;
+
+            transform: translateY(-1px);
+
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+
+        }
+
+
+
+        #dropZone {
+
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+
+            border-radius: 10px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            margin-bottom: 20px;
+
+            cursor: pointer;
+
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+
+            color: #bdbdbd;
+
+            background: rgba(255, 255, 255, 0.05);
+
+            backdrop-filter: blur(5px);
+
+            -webkit-backdrop-filter: blur(5px);
+
+        }
+
+
+
+        #dropZone.dragover,
+
+        #dropZone:hover {
+
+            border-color: #00bcd4;
+
+            background-color: rgba(0, 188, 212, 0.1);
+
+            color: #e0e0e0;
+
+        }
+
+
+
+        #fileList {
+
+            list-style: none;
+
+            padding: 0;
+
+            margin-bottom: 20px;
+
+            margin-top: 20px;
+
+        }
+
+
+
+        #fileList li {
+
+            background: rgba(255, 255, 255, 0.06);
+
+            backdrop-filter: blur(5px);
+
+            -webkit-backdrop-filter: blur(5px);
+
+            border: 1px solid rgba(255, 255, 255, 0.1);
+
+            padding: 8px 12px;
+
+            margin-bottom: 6px;
+
+            border-radius: 8px;
+
+            font-size: 0.9em;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            color: #ccc;
+
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+
+        }
+
+
+
+        #fileList li:hover {
+
+            background: rgba(255, 255, 255, 0.1);
+
+            border-color: rgba(255, 255, 255, 0.2);
+
+        }
+
+
+
+        #fileList li button {
+
+            margin-left: 10px;
+
+            padding: 2px 6px;
+
+            font-size: 0.8em;
+
+            margin-bottom: 0;
+
+            background-color: rgba(229, 57, 53, 0.6);
+
+            color: #fff;
+
+            font-weight: 400;
+
+            box-shadow: none;
+
+            border-radius: 5px;
+
+        }
+
+
+
+        #fileList li button:hover {
+
+            background-color: rgba(229, 57, 53, 0.9);
+
+            transform: scale(1.05);
+
+            box-shadow: none;
+
+        }
+
+
+
+        #status {
+
+            margin-top: 15px;
+
+            font-weight: 400;
+
+            color: #bdbdbd;
+
+            min-height: 1.6em;
+
+            font-size: 0.95em;
+
+        }
+
+
+
+        .hidden-file-input {
+
+            display: none;
+
+        }
+
+
+
+        .input-row {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            align-items: flex-start;
+
+            gap: 15px;
+
+            margin-bottom: 20px;
+
+        }
+
+
+
+        .input-row > div {
+
+            flex: 1;
+
+            min-width: 200px;
+
+        }
+
+
+
+        .input-row label {
+
+            margin-bottom: 5px;
+
+        }
+
+
+
+        .button-group {
+
+            margin-top: 5px;
+
+            margin-bottom: 15px;
+
+            text-align: left;
+
+        }
+
+
+
+        .button-group button {
+
+            margin-bottom: 10px;
+
+             margin-right: 10px;
+
+        }
+
+        .button-group button:last-child {
+
+            margin-right: 0;
+
+        }
+
+    </style>
+
+    <!-- PDF.js CDN -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+
+</head>
+
+
+
+<body>
+
+    <div class="container">
+
+        <h1>PDF to ShareGPT Converter v0.9.1</h1>
+
+
+
+        <!-- MODIFIED: Added onclick handler and updated text -->
+
+        <div id="dropZone" onclick="document.getElementById('fileInput').click();">
+
+            Drag & Drop up to 5 PDF files here, or click here to select.
+
+        </div>
+
+        <input type="file" id="fileInput" class="hidden-file-input" multiple accept=".pdf">
+
+
+
+        <!-- ORIGINAL "Select PDFs" button remains functional -->
+
+        <div class="select-pdf-button-container">
+
+             <button type="button" onclick="document.getElementById('fileInput').click();">
+
+                 Select PDFs
+
+             </button>
+
+        </div>
+
+
+
+        <div class="input-row">
+
+            <div>
+
+                <label for="apiKey">OpenRouter API Key:</label>
+
+                <input type="password" id="apiKey" placeholder="Enter your OpenRouter API Key">
+
+            </div>
+
+            <div>
+
+                <label for="modelSelect">Select Model:</label>
+
+                <select id="modelSelect">
+
+                    <option value="deepseek/deepseek-chat-v3-0324" selected>DeepSeek V3 0324</option>
+
+                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+
+                    <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash Preview</option>
+
+                    <option value="openai/gpt-4o">GPT-4o</option>
+
+                    <option value="minimax/minimax-01">MiniMax-01</option>
+
+                    <option value="anthropic/claude-3.7-sonnet">Claude 3.7 Sonnet</option>
+
+                    <option value="openai/gpt-4o-mini">GPT-4o-mini</option>
+
+                    <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+
+                    <option value="deepseek/deepseek-chat">DeepSeek V3</option>
+
+                    <option value="meta-llama/llama-4-maverick:free">Llama 4 Maverick (free)</option>
+
+                    <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 0324 (free)</option>
+
+                    <option value="meta-llama/llama-4-scout:free">Llama 4 Scout (free)</option>
+
+                    <option value="qwen/qwen3-235b-a22b:free">Qwen3 235B A22B (free)</option>
+
+                </select>
+
+            </div>
+
+             <div>
+
+                <label for="targetPairsInput">Target Pairs (0 for no limit):</label>
+
+                <input type="number" id="targetPairsInput" min="0" value="1000" placeholder="e.g., 1000">
+
+            </div>
+
+        </div>
+
+
+
+        <ul id="fileList"></ul>
+
+
+
+        <div class="button-group">
+
+            <button id="startButton">Start Generation</button>
+
+            <button id="stopButton" disabled>Stop</button>
+
+            <button id="downloadButton" disabled>Download JSON</button>
+
+        </div>
+
+
+
+        <div>
+
+            <label for="output">Generated ShareGPT Data (JSON):</label>
+
+            <textarea id="output" readonly placeholder="Generated conversation data will appear here..."></textarea>
+
+        </div>
+
+        <div id="status">Status: Idle</div>
+
+
+
+    </div>
+
+
+
+        <script>
+        // Set workerSrc for pdf.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const apiKeyInput = document.getElementById('apiKey');
+        const targetPairsInput = document.getElementById('targetPairsInput');
+        const modelSelect = document.getElementById('modelSelect');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const outputTextArea = document.getElementById('output');
+        const downloadButton = document.getElementById('downloadButton');
+        const statusDiv = document.getElementById('status');
+        const h1Title = document.querySelector('h1');
+        const outputLabel = document.querySelector('label[for="output"]');
+
+        // --- UI Updates to reflect new purpose ---
+        h1Title.textContent = 'PDF to Instruction Dataset';
+        outputLabel.textContent = 'Generated Instruction Data (JSONL Format Preview):';
+
+
+        // State Variables
+        let pdfFiles = [];
+        let instructionDataset = [];
+        let isProcessing = false;
+        let stopRequested = false;
+        let currentPairs = 0;
+        let targetPairs = 0;
+        const MAX_FILES = 5;
+        const PAGES_TO_SKIP_START = 20; // Skips title, contents, intro
+        const PAGES_TO_SKIP_END = 20;   // Skips index, bibliography
+
+        // --- File Handling (Unchanged) ---
+        function handleFiles(files) { const newlySelected = Array.from(files).filter(file => file.type === 'application/pdf'); if (pdfFiles.length + newlySelected.length > MAX_FILES) { updateStatus(`Error: Cannot select more than ${MAX_FILES} PDF files.`); return; } newlySelected.forEach(newFile => { if (!pdfFiles.some(existingFile => existingFile.name === newFile.name)) { pdfFiles.push(newFile); } }); renderFileList(); outputTextArea.value = ''; instructionDataset = []; currentPairs = 0; updateStatus(`Ready to process ${pdfFiles.length} file(s).`); updateButtonStates(); }
+        function renderFileList() { fileList.innerHTML = ''; pdfFiles.forEach((file, index) => { const li = document.createElement('li'); const fileNameSpan = document.createElement('span'); fileNameSpan.textContent = `${index + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`; li.appendChild(fileNameSpan); const removeBtn = document.createElement('button'); removeBtn.textContent = 'Remove'; removeBtn.onclick = (e) => { e.stopPropagation(); pdfFiles.splice(index, 1); renderFileList(); outputTextArea.value = ''; instructionDataset = []; currentPairs = 0; updateStatus(`Removed file. Ready to process ${pdfFiles.length} file(s).`); updateButtonStates(); }; li.appendChild(removeBtn); fileList.appendChild(li); }); }
+        dropZone.addEventListener('dragover', (event) => { event.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', (event) => { event.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(event.dataTransfer.files); });
+        fileInput.addEventListener('change', (event) => { handleFiles(event.target.files); fileInput.value = ''; });
+
+        // --- Status Update (Unchanged) ---
+        function updateStatus(message, isWarning = false) { console[isWarning ? 'warn' : 'log']("Status:", message); statusDiv.textContent = `Status: ${message}`; statusDiv.style.color = isWarning ? '#ffcc80' : '#bdbdbd'; }
+
+        // --- Download (MODIFIED for JSONL) ---
+        function triggerDownload() {
+            if (instructionDataset.length === 0) {
+                console.warn("triggerDownload called with no data.");
+                return false;
+            }
+            try {
+                // Format as JSONL (one JSON object per line)
+                const jsonlString = instructionDataset.map(item => JSON.stringify(item)).join('\n');
+                const blob = new Blob([jsonlString], { type: 'application/jsonl' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const modelNameSanitized = modelSelect.value.replace(/[^a-z0-9_-]/gi, '_');
+                const filename = `instruction_dataset_${currentPairs}_pairs_${modelNameSanitized}.jsonl`; // Changed extension
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                updateStatus(`JSONL file download initiated (${currentPairs} pairs) as ${filename}.`);
+                return true;
+            } catch (error) {
+                console.error("Error creating download file:", error);
+                updateStatus("Error creating download file.");
+                return false;
+            }
+        }
+        downloadButton.addEventListener('click', triggerDownload);
+
+        // --- API Call (HEAVILY MODIFIED) ---
+        async function callOpenRouterAPI(apiKey, context) {
+            const selectedModel = modelSelect.value;
+            if (!selectedModel) {
+                 updateStatus("Error: No model selected. Please choose a model from the list.", true);
+                 return { error: 'config_error', message: 'No model selected.' };
+            }
+
+            const baseURL = "https://openrouter.ai/api/v1";
+
+            const headers = {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+            };
+
+             // THIS IS OUR NEW, SUPERIOR SYSTEM PROMPT
+             const systemPrompt = `You are an expert curriculum designer specializing in psychology. Your task is to transform a raw text segment from a book into a concise and varied instruction-response pair for an AI model's training data.
+
+From the text chunk provided below, create ONLY ONE of the following types of interactions:
+1.  A **definitional question** (e.g., "Define the term 'cognitive dissonance'.")
+2.  A **scenario-based question** (e.g., "A person is tapping their foot and avoiding eye contact during a meeting. Based on the text, what might this indicate?")
+3.  An **interpretive question** about a specific action (e.g., "What is the psychological significance of a 'Duchenne smile'?")
+4.  A **'how-to' or application question** (e.g., "Based on the text, what are three ways to build rapport quickly?")
+5.  A **comparative question** (e.g., "What is the key difference between an emblem and an illustrator in body language?")
+
+RULES:
+-   Choose a different type of question for each new text chunk you process to ensure variety.
+-   The response MUST be grounded exclusively in the provided text. Do not invent information.
+-   Keep the instruction and the response clear, accurate, and concise.
+-   Your final output must be ONLY a single, valid JSON object with two keys: "instruction" and "output". Do not add explanations or markdown formatting like \`\`\`json.
+
+Here is the text chunk:
+---
+${context}
+---`;
+
+            const messages = [{ role: "user", content: systemPrompt }]; // Simplified message structure
+
+            const targetDisplay = targetPairs > 0 ? `/${targetPairs}` : '';
+            const statusPrefix = `Generating with ${selectedModel} (Pair ${currentPairs + 1}${targetDisplay})...`;
+            updateStatus(statusPrefix);
+
+            try {
+                const response = await fetch(`${baseURL}/chat/completions`, {
+                    method: "POST", headers: headers,
+                    body: JSON.stringify({ model: selectedModel, messages: messages, response_format: { type: "json_object" } }),
+                });
+                if (!response.ok) { const errorBody = await response.text(); let detail = errorBody; try { detail = JSON.parse(errorBody).error?.message || errorBody; } catch (e) {/* ignore */ } throw new Error(`API Error: ${response.status} ${response.statusText} - ${detail}`); }
+
+                const completion = await response.json();
+                const rawContent = completion.choices[0]?.message?.content?.trim();
+                 if (!rawContent) { throw new Error("API Error: Received an empty response from the model."); }
+                updateStatus(`Received response from ${selectedModel}. Parsing...`);
+
+                let parsedJson = JSON.parse(rawContent);
+                if (typeof parsedJson !== 'object' || !parsedJson.instruction || !parsedJson.output) {
+                    throw new Error("Parsed JSON does not contain required 'instruction' and 'output' keys.");
+                }
+                return parsedJson;
+
+            } catch (error) {
+                console.error(`Error with API call or parsing:`, error);
+                updateStatus(`Error: ${error.message}`);
+                return { error: 'api_or_parse_error', message: error.message };
+            }
+        }
+
+
+        // --- PDF Processing & Generation Logic (MODIFIED) ---
+        async function processPDFs(apiKey) {
+            for (let fileIndex = 0; fileIndex < pdfFiles.length; fileIndex++) {
+                if (!isProcessing) break;
+                const file = pdfFiles[fileIndex];
+                updateStatus(`Loading PDF ${fileIndex + 1}/${pdfFiles.length}: ${file.name}...`);
+                let pdfDoc;
+                const objectUrl = URL.createObjectURL(file);
+
+                try {
+                    pdfDoc = await pdfjsLib.getDocument(objectUrl).promise;
+                    updateStatus(`Loaded ${file.name} (${pdfDoc.numPages} pages). Extracting text...`);
+                    const startPage = PAGES_TO_SKIP_START + 1;
+                    const endPage = pdfDoc.numPages - PAGES_TO_SKIP_END;
+                    if (startPage > endPage) { updateStatus(`Skipping ${file.name}: Not enough pages.`); continue; }
+
+                    let fullText = '';
+                    for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+                        const page = await pdfDoc.getPage(pageNum);
+                        const textContent = await page.getTextContent();
+                        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                    }
+                    fullText = fullText.replace(/\s+/g, ' ').trim(); // Clean up the full text
+
+                    // Simple chunking strategy: split the text into chunks of ~2500 chars
+                    const chunkSize = 2500;
+                    const textChunks = [];
+                    for (let i = 0; i < fullText.length; i += chunkSize) {
+                        textChunks.push(fullText.substring(i, i + chunkSize));
+                    }
+                    updateStatus(`Split ${file.name} into ${textChunks.length} text chunks.`);
+
+                    for (let chunkIndex = 0; chunkIndex < textChunks.length; chunkIndex++) {
+                        if (!isProcessing) break; // Check for stop request
+
+                        const context = textChunks[chunkIndex];
+                        const generatedPair = await callOpenRouterAPI(apiKey, context);
+
+                        if (generatedPair && !generatedPair.error) {
+                             // Add extra metadata for fine-tuning
+                            const finalObject = {
+                                source_book: file.name,
+                                system: "You are a helpful assistant specialized in psychology, body language, and human behavior.",
+                                instruction: generatedPair.instruction,
+                                output: generatedPair.output
+                            };
+
+                            instructionDataset.push(finalObject);
+                            currentPairs++;
+                            updateOutput();
+                        } else {
+                            updateStatus(`Skipping chunk due to error: ${generatedPair?.message || 'Unknown error'}.`);
+                             if (generatedPair?.error === 'config_error') {
+                                isProcessing = false; // Stop on critical config errors
+                            }
+                        }
+
+                        // Check if target is reached
+                        if (targetPairs > 0 && currentPairs >= targetPairs) {
+                            isProcessing = false;
+                        }
+                        
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Rate limit delay
+                    } // End chunk loop
+
+                } catch (pdfError) {
+                    console.error(`Error processing PDF ${file.name}:`, pdfError);
+                    updateStatus(`Error processing PDF ${file.name}: ${pdfError.message}. Skipping.`);
+                } finally {
+                    URL.revokeObjectURL(objectUrl);
+                    if (pdfDoc) await pdfDoc.destroy();
+                }
+                if (!isProcessing) break; // Exit file loop if stopped
+            } // End file loop
+        }
+
+
+        function updateOutput() {
+            try {
+                 // To avoid crashing the browser with huge datasets, show only the last 50 items.
+                const previewData = instructionDataset.slice(-50);
+                const previewText = previewData.map(item => JSON.stringify(item)).join('\n');
+                outputTextArea.value = `Displaying last ${previewData.length} of ${instructionDataset.length} total pairs...\n\n` + previewText;
+                outputTextArea.scrollTop = outputTextArea.scrollHeight;
+                updateButtonStates();
+            } catch (e) {
+                console.error("Error updating output text area:", e);
+                outputTextArea.value = "Error displaying JSON data. See console.";
+            }
+        }
+
+
+        // --- Control Button States (Unchanged logic, but essential) ---
+        function updateButtonStates() {
+            const hasData = instructionDataset.length > 0;
+            startButton.disabled = isProcessing;
+            stopButton.disabled = !isProcessing;
+            apiKeyInput.disabled = isProcessing;
+            targetPairsInput.disabled = isProcessing;
+            modelSelect.disabled = isProcessing;
+            fileInput.disabled = isProcessing;
+            document.querySelector('.select-pdf-button-container button').disabled = isProcessing;
+            dropZone.style.pointerEvents = isProcessing ? 'none' : 'auto';
+            dropZone.onclick = isProcessing ? null : () => document.getElementById('fileInput').click();
+            dropZone.style.opacity = isProcessing ? 0.6 : 1;
+            dropZone.style.cursor = isProcessing ? 'not-allowed' : 'pointer';
+            fileList.querySelectorAll('button').forEach(btn => btn.disabled = isProcessing);
+            downloadButton.disabled = isProcessing || !hasData;
+        }
+
+
+        // --- Start & Stop Button Logic (MODIFIED for new flow) ---
+        startButton.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value.trim(); if (!apiKey) { updateStatus("Error: API Key is required.", true); return; } if (pdfFiles.length === 0) { updateStatus("Error: Please select at least one PDF file.", true); return; } if (!modelSelect.value) { updateStatus("Error: Please select a model.", true); return; }
+            targetPairs = parseInt(targetPairsInput.value, 10) || 0; if (targetPairs < 0) targetPairs = 0; targetPairsInput.value = targetPairs;
+
+            isProcessing = true;
+            stopRequested = false;
+            currentPairs = 0;
+            instructionDataset = [];
+            outputTextArea.value = '';
+
+            updateButtonStates();
+            updateStatus(`Starting processing... Target: ${targetPairs > 0 ? targetPairs : 'unlimited'} pairs.`);
+
+            try {
+                await processPDFs(apiKey); // Run the core logic
+
+                if (stopRequested) {
+                    updateStatus(`Processing stopped by user (${currentPairs} pairs generated).`);
+                } else if (targetPairs > 0 && currentPairs >= targetPairs) {
+                    updateStatus(`Target of ${targetPairs} pairs reached. Auto-downloading...`);
+                    triggerDownload();
+                } else {
+                    updateStatus(`Processing finished naturally (${currentPairs} pairs generated).`);
+                }
+
+            } catch (error) {
+                 updateStatus(`CRITICAL ERROR: ${error.message}`, true);
+                 console.error("Critical error in startButton handler:", error);
+            } finally {
+                isProcessing = false;
+                stopRequested = false;
+                updateButtonStates(); // Re-enable controls
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (!isProcessing) return;
+            stopRequested = true;
+            isProcessing = false; // This will stop the loops
+            updateStatus("Stop requested... Finishing current API call and stopping.");
+        });
+
+        // --- Initial State ---
+        updateStatus("Idle. Select PDF(s), enter API key, choose model, and set target pairs.");
+        updateButtonStates();
+
+    </script>
+
+
+</body>
+
+
+
+</html>
