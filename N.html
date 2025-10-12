@@ -393,7 +393,8 @@ RULES:
 - Generate an interaction that matches the requested template type.
 - The response MUST be grounded exclusively in the provided text; do not invent information.
 - Keep the instruction and output clear, accurate, and concise.
-- Output ONLY a single, valid JSON object.`;
+- Output ONLY a single, valid JSON object.
+- do not input any invalid caacters. that are not recognized by jsonl,only output a single json object ' ;
             
             const userPrompt = `Template: ${templateType}
 Source: ${book}
