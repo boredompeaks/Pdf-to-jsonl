@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Cognitive Psychology Dataset</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            padding: 20px 10px;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            color: #e0e0e0;
+            min-height: calc(100vh - 20px);
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00bcd4;
+            font-weight: 600;
+            margin-bottom: 35px;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 5px rgba(0, 188, 212, 0.5);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 400;
+            color: #bdbdbd;
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        input[type="file"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: rgba(0, 0, 0, 0.3);
+            color: #e0e0e0;
+            font-size: 0.95em;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        select {
+            appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23bdbdbd" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 18px;
+            padding-right: 35px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #00bcd4;
+            box-shadow: 0 0 8px rgba(0, 188, 212, 0.3);
+        }
+
+        textarea {
+            height: 250px;
+            resize: vertical;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        button {
+            background-color: #00bcd4;
+            color: #111;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #0097a7;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        #stopButton {
+            background-color: #e53935;
+            color: #fff;
+        }
+
+        #stopButton:hover:not(:disabled) {
+            background-color: #c62828;
+        }
+
+        #downloadButton {
+            background-color: #4caf50;
+            color: #fff;
+        }
+
+        #downloadButton:hover:not(:disabled) {
+            background-color: #388e3c;
+        }
+
+        .select-pdf-button-container {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .select-pdf-button-container button {
+            background-color: transparent;
+            border: 1px solid #00bcd4;
+            color: #00bcd4;
+            box-shadow: none;
+            margin-right: 0;
+            padding: 10px 20px;
+        }
+
+        #dropZone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+            color: #bdbdbd;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+        }
+
+        #dropZone.dragover,
+        #dropZone:hover {
+            border-color: #00bcd4;
+            background-color: rgba(0, 188, 212, 0.1);
+            color: #e0e0e0;
+        }
+
+        #fileList {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+
+        #fileList li {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #ccc;
+        }
+
+        #fileList li button {
+            margin-left: 10px;
+            padding: 2px 6px;
+            font-size: 0.8em;
+            background-color: rgba(229, 57, 53, 0.6);
+            color: #fff;
+            border-radius: 5px;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-weight: 400;
+            color: #bdbdbd;
+            min-height: 1.6em;
+            font-size: 0.95em;
+        }
+
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-row > div {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .button-group {
+            margin-top: 5px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF to Cognitive Psychology Instruction Dataset</h1>
+        <div id="dropZone">Drag & Drop up to 10 PDF files here, or click to select.</div>
+        <input type="file" id="fileInput" class="hidden-file-input" multiple accept=".pdf">
+        <div class="select-pdf-button-container">
+            <button type="button" onclick="document.getElementById('fileInput').click();">Select PDFs</button>
+        </div>
+        <div class="input-row">
+            <div>
+                <label for="apiKeyFile">Upload API Key File (1-3 keys, .txt):</label>
+                <input type="file" id="apiKeyFile" accept=".txt">
+            </div>
+            <div>
+                <label for="modelSelect">Select Model:</label>
+                <select id="modelSelect">
+                    <option value="deepseek/deepseek-chat-v3-0324" selected>DeepSeek V3 0324</option>
+                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                    <option value="openai/gpt-4o">GPT-4o</option>
+                    <option value="openai/gpt-4o-mini">GPT-4o-mini</option>
+                </select>
+            </div>
+            <div>
+                <label for="targetPairsInput">Target Pairs (0 for no limit):</label>
+                <input type="number" id="targetPairsInput" min="0" value="1000">
+            </div>
+        </div>
+        <ul id="fileList"></ul>
+        <div class="button-group">
+            <button id="startButton">Start Generation</button>
+            <button id="stopButton" disabled>Stop</button>
+            <button id="downloadButton" disabled>Download JSONL</button>
+        </div>
+        <div>
+            <label for="output">Generated Instruction Data (JSONL Format Preview):</label>
+            <textarea id="output" readonly></textarea>
+        </div>
+        <div id="status">Status: Idle</div>
+    </div>
+    <script>
+        // Hardcoded API keys (optional, overridden by file upload)
+        let apiKeys = ["your_key1", "your_key2", "your_key3"]; // Replace with your OpenRouter API keys
+
+        // Set workerSrc for pdf.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const apiKeyFileInput = document.getElementById('apiKeyFile');
+        const fileList = document.getElementById('fileList');
+        const modelSelect = document.getElementById('modelSelect');
+        const targetPairsInput = document.getElementById('targetPairsInput');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const outputTextArea = document.getElementById('output');
+        const downloadButton = document.getElementById('downloadButton');
+        const statusDiv = document.getElementById('status');
+
+        // State Variables
+        let pdfFiles = [];
+        let instructionDataset = [];
+        let isProcessing = false;
+        let stopRequested = false;
+        let currentPairs = 0;
+        let targetPairs = 0;
+        const MAX_FILES = 10;
+        const PAGES_TO_SKIP_START = 20;
+        const PAGES_TO_SKIP_END = 20;
+        const BATCH_SIZE = 4;
+        const RATE_LIMIT_DELAY = 1000;
+
+        // System Prompt
+        const systemPrompt = `You are an expert in cognitive psychology, specializing in persuasion and human behavior as described in books like Influence, Thinking, Fast and Slow, Pre-Suasion, Predictably Irrational, Made to Stick, and Nudge. Your task is to transform a raw text segment from a book into a single, concise instruction-response pair in JSON format with "instruction", "output", and "template_type" keys, focusing exclusively on cognitive psychology concepts. Avoid non-psychology domains unless they directly relate to psychological applications (e.g., marketing, policy, or UI design).
+
+For each text chunk, dynamically choose ONE of the following interaction types to ensure variety:
+1. Definitional question (e.g., "Define the term 'cognitive dissonance'.").
+2. Scenario-based question (e.g., "A person is tapping their foot and avoiding eye contact during a meeting. What might this indicate?").
+3. Interpretive question about a specific action (e.g., "What is the psychological significance of a 'Duchenne smile'?").
+4. How-to or application question (e.g., "What are three ways to build rapport quickly based on the text?").
+5. Comparative question (e.g., "What is the key difference between an emblem and an illustrator in body language?").
+6. Real-World Application (e.g., "Where can I observe the dynamic appraisal theories?").
+
+Rules:
+- Select a different interaction type for each text chunk to maximize variety.
+- Generate both the question (instruction) and the answer (output) based on the provided text.
+- The response must be grounded exclusively in the provided text; do not invent information.
+- Keep the instruction and output clear, accurate, and concise.
+- Include a "template_type" field in the JSON output to indicate the chosen interaction type: "Define & Explain", "Analyze & Deconstruct", "Compare & Contrast", "Real-World Application", or "Creative Synthesis".
+- Output a single, valid JSON object with "instruction", "output", and "template_type" keys.
+
+Text chunk:
+---
+${context}
+---
+`;
+
+        // File Handling
+        function handleFiles(files) {
+            const newlySelected = Array.from(files).filter(file => file.type === 'application/pdf');
+            if (pdfFiles.length + newlySelected.length > MAX_FILES) {
+                updateStatus(`Error: Cannot select more than ${MAX_FILES} PDF files.`, true);
+                return;
+            }
+            newlySelected.forEach(newFile => {
+                if (!pdfFiles.some(existingFile => existingFile.name === newFile.name)) {
+                    pdfFiles.push(newFile);
+                }
+            });
+            renderFileList();
+            outputTextArea.value = '';
+            instructionDataset = [];
+            currentPairs = 0;
+            updateStatus(`Ready to process ${pdfFiles.length} file(s).`);
+            updateButtonStates();
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            pdfFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.textContent = `${index + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                li.appendChild(fileNameSpan);
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    pdfFiles.splice(index, 1);
+                    renderFileList();
+                    outputTextArea.value = '';
+                    instructionDataset = [];
+                    currentPairs = 0;
+                    updateStatus(`Removed file. Ready to process ${pdfFiles.length} file(s).`);
+                    updateButtonStates();
+                };
+                li.appendChild(removeBtn);
+                fileList.appendChild(li);
+            });
+        }
+
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(event.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (event) => {
+            handleFiles(event.target.files);
+            fileInput.value = '';
+        });
+
+        // API Key File Handling
+        let apiKeyIndex = 0;
+        apiKeyFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    apiKeys = content.split(/[\n,]/).map(key => key.trim()).filter(key => key);
+                    if (apiKeys.length < 1 || apiKeys.length > 3) {
+                        updateStatus("Error: Provide 1-3 API keys in the file.", true);
+                        apiKeys = [];
+                    } else {
+                        updateStatus(`Loaded ${apiKeys.length} API key(s) from file.`);
+                    }
+                } catch (error) {
+                    updateStatus("Error reading API key file.", true);
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+            apiKeyFileInput.value = '';
+        });
+
+        // Status Update
+        function updateStatus(message, isWarning = false) {
+            console[isWarning ? 'warn' : 'log']("Status:", message);
+            statusDiv.textContent = `Status: ${message}`;
+            statusDiv.style.color = isWarning ? '#ffcc80' : '#bdbdbd';
+        }
+
+        // Download
+        function triggerDownload() {
+            if (instructionDataset.length === 0) {
+                console.warn("triggerDownload called with no data.");
+                return false;
+            }
+            try {
+                const jsonlString = instructionDataset.map(item => JSON.stringify(item)).join('\n');
+                const blob = new Blob([jsonlString], { type: 'application/jsonl' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const modelNameSanitized = modelSelect.value.replace(/[^a-z0-9_-]/gi, '_');
+                const filename = `psychology_instruction_dataset_${currentPairs}_pairs_${modelNameSanitized}.jsonl`;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                updateStatus(`JSONL file download initiated (${currentPairs} pairs) as ${filename}.`);
+                return true;
+            } catch (error) {
+                console.error("Error creating download file:", error);
+                updateStatus("Error creating download file.", true);
+                return false;
+            }
+        }
+        downloadButton.addEventListener('click', triggerDownload);
+
+        // API Call
+        async function callOpenRouterAPI(context, book) {
+            if (apiKeys.length === 0) {
+                updateStatus("Error: No API keys provided.", true);
+                return { error: 'config_error', message: 'No API keys provided.' };
+            }
+            const selectedModel = modelSelect.value;
+            if (!selectedModel) {
+                updateStatus("Error: No model selected.", true);
+                return { error: 'config_error', message: 'No model selected.' };
+            }
+
+            const apiKey = apiKeys[apiKeyIndex % apiKeys.length];
+            apiKeyIndex++;
+            const baseURL = "https://openrouter.ai/api/v1";
+            const headers = {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+            };
+
+            const prompt = systemPrompt.replace('${context}', context);
+            const messages = [{ role: "system", "content": prompt }];
+
+            try {
+                const response = await fetch(`${baseURL}/chat/completions`, {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify({
+                        model: selectedModel,
+                        messages: messages,
+                        response_format: { type: "json_object" }
+                    }),
+                });
+
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        updateStatus("Rate limit exceeded. Pausing before retry...", true);
+                        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY * 2));
+                        return { error: 'rate_limit', message: 'Rate limit exceeded.' };
+                    }
+                    const errorBody = await response.text();
+                    let detail = errorBody;
+                    try { detail = JSON.parse(errorBody).error?.message || errorBody; } catch (e) {}
+                    throw new Error(`API Error: ${response.status} ${response.statusText} - ${detail}`);
+                }
+
+                const completion = await response.json();
+                const rawContent = completion.choices[0]?.message?.content?.trim();
+                if (!rawContent) {
+                    throw new Error("API Error: Received an empty response from the model.");
+                }
+
+                let parsedJson = JSON.parse(rawContent);
+                if (typeof parsedJson !== 'object' || !parsedJson.instruction || !parsedJson.output || !parsedJson.template_type) {
+                    throw new Error("Parsed JSON does not contain required 'instruction', 'output', and 'template_type' keys.");
+                }
+                return {
+                    ...parsedJson,
+                    source_book: book
+                };
+
+            } catch (error) {
+                console.error(`Error with API call or parsing:`, error);
+                updateStatus(`Error: ${error.message}`, true);
+                return { error: 'api_or_parse_error', message: error.message };
+            }
+        }
+
+        // PDF Processing
+        async function processPDFs() {
+            for (let fileIndex = 0; fileIndex < pdfFiles.length; fileIndex++) {
+                if (!isProcessing) break;
+                const file = pdfFiles[fileIndex];
+                updateStatus(`Loading PDF ${fileIndex + 1}/${pdfFiles.length}: ${file.name}...`);
+                let pdfDoc;
+                const objectUrl = URL.createObjectURL(file);
+
+                try {
+                    pdfDoc = await pdfjsLib.getDocument(objectUrl).promise;
+                    updateStatus(`Loaded ${file.name} (${pdfDoc.numPages} pages). Extracting text...`);
+                    const startPage = PAGES_TO_SKIP_START + 1;
+                    const endPage = pdfDoc.numPages - PAGES_TO_SKIP_END;
+                    if (startPage > endPage) {
+                        updateStatus(`Skipping ${file.name}: Not enough pages.`, true);
+                        continue;
+                    }
+
+                    let fullText = '';
+                    for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+                        const page = await pdfDoc.getPage(pageNum);
+                        const textContent = await page.getTextContent();
+                        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                    }
+                    fullText = fullText.replace(/\s+/g, ' ').trim();
+
+                    const chunkSize = 2500;
+                    const textChunks = [];
+                    for (let i = 0; i < fullText.length; i += chunkSize) {
+                        textChunks.push(fullText.substring(i, i + chunkSize));
+                    }
+                    updateStatus(`Split ${file.name} into ${textChunks.length} text chunks.`);
+
+                    for (let chunkIndex = 0; chunkIndex < textChunks.length; chunkIndex += BATCH_SIZE) {
+                        if (!isProcessing) break;
+
+                        const batch = textChunks.slice(chunkIndex, chunkIndex + BATCH_SIZE);
+                        const batchPromises = batch.map(context => callOpenRouterAPI(context, file.name));
+
+                        const results = await Promise.all(batchPromises);
+                        results.forEach((result, idx) => {
+                            if (result && !result.error) {
+                                instructionDataset.push({
+                                    source_book: result.source_book,
+                                    system: "You are a helpful assistant specialized in cognitive psychology, persuasion, and human behavior.",
+                                    instruction: result.instruction,
+                                    output: result.output,
+                                    template_type: result.template_type
+                                });
+                                currentPairs++;
+                                updateOutput();
+                            } else if (result.error !== 'rate_limit') {
+                                updateStatus(`Skipping chunk due to error: ${result?.message || 'Unknown error'}.`, true);
+                                if (result?.error === 'config_error') {
+                                    isProcessing = false;
+                                }
+                            }
+                        });
+
+                        if (targetPairs > 0 && currentPairs >= targetPairs) {
+                            isProcessing = false;
+                            break;
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+                    }
+
+                } catch (pdfError) {
+                    console.error(`Error processing PDF ${file.name}:`, pdfError);
+                    updateStatus(`Error processing PDF ${file.name}: ${pdfError.message}. Skipping.`, true);
+                } finally {
+                    URL.revokeObjectURL(objectUrl);
+                    if (pdfDoc) await pdfDoc.destroy();
+                }
+                if (!isProcessing) break;
+            }
+        }
+
+        function updateOutput() {
+            try {
+                const previewData = instructionDataset.slice(-50);
+                const previewText = previewData.map(item => JSON.stringify(item)).join('\n');
+                outputTextArea.value = `Displaying last ${previewData.length} of ${instructionDataset.length} total pairs...\n\n` + previewText;
+                outputTextArea.scrollTop = outputTextArea.scrollHeight;
+                updateButtonStates();
+            } catch (e) {
+                console.error("Error updating output text area:", e);
+                outputTextArea.value = "Error displaying JSON data. See console.";
+            }
+        }
+
+        // Control Button States
+        function updateButtonStates() {
+            const hasData = instructionDataset.length > 0;
+            startButton.disabled = isProcessing || apiKeys.length === 0;
+            stopButton.disabled = !isProcessing;
+            apiKeyFileInput.disabled = isProcessing;
+            targetPairsInput.disabled = isProcessing;
+            modelSelect.disabled = isProcessing;
+            fileInput.disabled = isProcessing;
+            document.querySelector('.select-pdf-button-container button').disabled = isProcessing;
+            dropZone.style.pointerEvents = isProcessing ? 'none' : 'auto';
+            dropZone.onclick = isProcessing ? null : () => document.getElementById('fileInput').click();
+            dropZone.style.opacity = isProcessing ? 0.6 : 1;
+            dropZone.style.cursor = isProcessing ? 'not-allowed' : 'pointer';
+            fileList.querySelectorAll('button').forEach(btn => btn.disabled = isProcessing);
+            downloadButton.disabled = isProcessing || !hasData;
+        }
+
+        // Start & Stop Buttons
+        startButton.addEventListener('click', async () => {
+            if (apiKeys.length === 0) {
+                updateStatus("Error: Please upload an API key file or set keys in the script.", true);
+                return;
+            }
+            if (pdfFiles.length === 0) {
+                updateStatus("Error: Please select at least one PDF file.", true);
+                return;
+            }
+            if (!modelSelect.value) {
+                updateStatus("Error: Please select a model.", true);
+                return;
+            }
+            targetPairs = parseInt(targetPairsInput.value, 10) || 0;
+            if (targetPairs < 0) targetPairs = 0;
+            targetPairsInput.value = targetPairs;
+
+            isProcessing = true;
+            stopRequested = false;
+            currentPairs = 0;
+            instructionDataset = [];
+            outputTextArea.value = '';
+
+            updateButtonStates();
+            updateStatus(`Starting processing... Target: ${targetPairs > 0 ? targetPairs : 'unlimited'} pairs.`);
+
+            try {
+                await processPDFs();
+                if (stopRequested) {
+                    updateStatus(`Processing stopped by user (${currentPairs} pairs generated).`);
+                } else if (targetPairs > 0 && currentPairs >= targetPairs) {
+                    updateStatus(`Target of ${targetPairs} pairs reached. Auto-downloading...`);
+                    triggerDownload();
+                } else {
+                    updateStatus(`Processing finished naturally (${currentPairs} pairs generated).`);
+                }
+            } catch (error) {
+                updateStatus(`CRITICAL ERROR: ${error.message}`, true);
+                console.error("Critical error in startButton handler:", error);
+            } finally {
+                isProcessing = false;
+                stopRequested = false;
+                updateButtonStates();
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (!isProcessing) return;
+            stopRequested = true;
+            isProcessing = false;
+            updateStatus("Stop requested... Finishing current API call and stopping.");
+        });
+
+        // Initial State
+        updateStatus("Idle. Upload API key file, select PDF(s), choose model, and set target pairs.");
+        updateButtonStates();
+    </script>
+</body>
+</html>
