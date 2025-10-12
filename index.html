@@ -738,7 +738,7 @@
 
 
 
-        <script>
+     <script>
         // Set workerSrc for pdf.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -757,10 +757,9 @@
         const h1Title = document.querySelector('h1');
         const outputLabel = document.querySelector('label[for="output"]');
 
-        // --- UI Updates to reflect new purpose ---
-        h1Title.textContent = 'PDF to Instruction Dataset';
+        // UI Updates
+        h1Title.textContent = 'PDF to Cognitive Psychology Instruction Dataset';
         outputLabel.textContent = 'Generated Instruction Data (JSONL Format Preview):';
-
 
         // State Variables
         let pdfFiles = [];
@@ -769,37 +768,118 @@
         let stopRequested = false;
         let currentPairs = 0;
         let targetPairs = 0;
-        const MAX_FILES = 5;
-        const PAGES_TO_SKIP_START = 20; // Skips title, contents, intro
+        const MAX_FILES = 10;
+        const PAGES_TO_SKIP_START = 20;
         const PAGES_TO_SKIP_END = 20;
-        const batchSize =4// Skips index, bibliography
+        const BATCH_SIZE = 4;
+        const RATE_LIMIT_DELAY = 1000;
 
-        // --- File Handling (Unchanged) ---
-        function handleFiles(files) { const newlySelected = Array.from(files).filter(file => file.type === 'application/pdf'); if (pdfFiles.length + newlySelected.length > MAX_FILES) { updateStatus(`Error: Cannot select more than ${MAX_FILES} PDF files.`); return; } newlySelected.forEach(newFile => { if (!pdfFiles.some(existingFile => existingFile.name === newFile.name)) { pdfFiles.push(newFile); } }); renderFileList(); outputTextArea.value = ''; instructionDataset = []; currentPairs = 0; updateStatus(`Ready to process ${pdfFiles.length} file(s).`); updateButtonStates(); }
-        function renderFileList() { fileList.innerHTML = ''; pdfFiles.forEach((file, index) => { const li = document.createElement('li'); const fileNameSpan = document.createElement('span'); fileNameSpan.textContent = `${index + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`; li.appendChild(fileNameSpan); const removeBtn = document.createElement('button'); removeBtn.textContent = 'Remove'; removeBtn.onclick = (e) => { e.stopPropagation(); pdfFiles.splice(index, 1); renderFileList(); outputTextArea.value = ''; instructionDataset = []; currentPairs = 0; updateStatus(`Removed file. Ready to process ${pdfFiles.length} file(s).`); updateButtonStates(); }; li.appendChild(removeBtn); fileList.appendChild(li); }); }
-        dropZone.addEventListener('dragover', (event) => { event.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
-        dropZone.addEventListener('drop', (event) => { event.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(event.dataTransfer.files); });
-        fileInput.addEventListener('change', (event) => { handleFiles(event.target.files); fileInput.value = ''; });
+        // Prompt Templates for Cognitive Psychology
+        const promptTemplates = [
+            {
+                type: "Define & Explain",
+                template: (book, context) => `From ${book}, define a key cognitive psychology concept found in the following text. Explain the underlying cognitive psychology mechanism that makes this principle effective, citing any key evidence or experiment mentioned in the text. Output a single JSON object with "instruction" and "output" keys, focusing only on cognitive psychology.\n---\n${context}\n---`
+            },
+            {
+                type: "Analyze & Deconstruct",
+                template: (book, context) => `Analyze the following scenario from ${book} based on cognitive psychology principles: ${context}. Identify and deconstruct the persuasive or cognitive techniques being used and explain how they are intended to work on the target's psychology. Output a single JSON object with "instruction" and "output" keys, focusing only on cognitive psychology.\n---\n${context}\n---`
+            },
+            {
+                type: "Compare & Contrast",
+                template: (book, context) => `From ${book}, compare and contrast two cognitive psychology concepts found in the following text. Explain how they are similar in their psychological mechanism and how they differ in their application. Output a single JSON object with "instruction" and "output" keys, focusing only on cognitive psychology.\n---\n${context}\n---`
+            },
+            {
+                type: "Real-World Application",
+                template: (book, context) => `From ${book}, describe a real-world example of a cognitive psychology concept found in the following text being used in a domain like marketing, policy, or user interface design. Explain its implementation and intended cognitive effect. Output a single JSON object with "instruction" and "output" keys, focusing only on cognitive psychology.\n---\n${context}\n---`
+            },
+            {
+                type: "Creative Synthesis",
+                template: (book, context) => `From ${book}, create a novel scenario (e.g., a marketing plan, dialogue, or user interface) that persuades a target audience using cognitive psychology concepts found in the following text. Justify how the chosen concepts are applied. Output a single JSON object with "instruction" and "output" keys, focusing only on cognitive psychology.\n---\n${context}\n---`
+            }
+        ];
 
-        // --- Status Update (Unchanged) ---
-        function updateStatus(message, isWarning = false) { console[isWarning ? 'warn' : 'log']("Status:", message); statusDiv.textContent = `Status: ${message}`; statusDiv.style.color = isWarning ? '#ffcc80' : '#bdbdbd'; }
+        // File Handling
+        function handleFiles(files) {
+            const newlySelected = Array.from(files).filter(file => file.type === 'application/pdf');
+            if (pdfFiles.length + newlySelected.length > MAX_FILES) {
+                updateStatus(`Error: Cannot select more than ${MAX_FILES} PDF files.`, true);
+                return;
+            }
+            newlySelected.forEach(newFile => {
+                if (!pdfFiles.some(existingFile => existingFile.name === newFile.name)) {
+                    pdfFiles.push(newFile);
+                }
+            });
+            renderFileList();
+            outputTextArea.value = '';
+            instructionDataset = [];
+            currentPairs = 0;
+            updateStatus(`Ready to process ${pdfFiles.length} file(s).`);
+            updateButtonStates();
+        }
 
-        // --- Download (MODIFIED for JSONL) ---
+        function renderFileList() {
+            fileList.innerHTML = '';
+            pdfFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.textContent = `${index + 1}. ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                li.appendChild(fileNameSpan);
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    pdfFiles.splice(index, 1);
+                    renderFileList();
+                    outputTextArea.value = '';
+                    instructionDataset = [];
+                    currentPairs = 0;
+                    updateStatus(`Removed file. Ready to process ${pdfFiles.length} file(s).`);
+                    updateButtonStates();
+                };
+                li.appendChild(removeBtn);
+                fileList.appendChild(li);
+            });
+        }
+
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(event.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (event) => {
+            handleFiles(event.target.files);
+            fileInput.value = '';
+        });
+
+        // Status Update
+        function updateStatus(message, isWarning = false) {
+            console[isWarning ? 'warn' : 'log']("Status:", message);
+            statusDiv.textContent = `Status: ${message}`;
+            statusDiv.style.color = isWarning ? '#ffcc80' : '#bdbdbd';
+        }
+
+        // Download
         function triggerDownload() {
             if (instructionDataset.length === 0) {
                 console.warn("triggerDownload called with no data.");
                 return false;
             }
             try {
-                // Format as JSONL (one JSON object per line)
                 const jsonlString = instructionDataset.map(item => JSON.stringify(item)).join('\n');
                 const blob = new Blob([jsonlString], { type: 'application/jsonl' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 const modelNameSanitized = modelSelect.value.replace(/[^a-z0-9_-]/gi, '_');
-                const filename = `instruction_dataset_${currentPairs}_pairs_${modelNameSanitized}.jsonl`; // Changed extension
+                const filename = `psychology_instruction_dataset_${currentPairs}_pairs_${modelNameSanitized}.jsonl`;
                 a.download = filename;
                 document.body.appendChild(a);
                 a.click();
@@ -809,82 +889,83 @@
                 return true;
             } catch (error) {
                 console.error("Error creating download file:", error);
-                updateStatus("Error creating download file.");
+                updateStatus("Error creating download file.", true);
                 return false;
             }
         }
         downloadButton.addEventListener('click', triggerDownload);
 
-        // --- API Call (HEAVILY MODIFIED) ---
-        async function callOpenRouterAPI(apiKey, context) {
+        // API Call
+        async function callOpenRouterAPI(apiKey, context, book, templateIndex) {
             const selectedModel = modelSelect.value;
             if (!selectedModel) {
-                 updateStatus("Error: No model selected. Please choose a model from the list.", true);
-                 return { error: 'config_error', message: 'No model selected.' };
+                updateStatus("Error: No model selected. Please choose a model from the list.", true);
+                return { error: 'config_error', message: 'No model selected.' };
             }
 
             const baseURL = "https://openrouter.ai/api/v1";
-
             const headers = {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json",
             };
 
-             // THIS IS OUR NEW, SUPERIOR SYSTEM PROMPT
-             const systemPrompt = `You are an expert curriculum designer specializing in psychology. Your task is to transform a raw text segment from a book into a concise and varied instruction-response pair for an AI model's training data.
+            const systemPrompt = `You are an expert in cognitive psychology, specializing in persuasion and human behavior as described in books like Influence, Thinking, Fast and Slow, Pre-Suasion, Predictably Irrational, Made to Stick, and Nudge. Your task is to generate a single instruction-response pair in JSON format with "instruction" and "output" keys, based on the provided text and prompt template. Focus exclusively on cognitive psychology concepts and avoid non-psychology domains unless they directly relate to psychological applications (e.g., marketing, policy, or UI design). Ensure the response is concise, accurate, and grounded in the provided text.`;
+            const userPrompt = promptTemplates[templateIndex].template(book, context);
 
-From the text chunk provided below, create ONLY ONE of the following types of interactions:
-1.  A **definitional question** (e.g., "Define the term 'cognitive dissonance'.")
-2.  A **scenario-based question** (e.g., "A person is tapping their foot and avoiding eye contact during a meeting. Based on the text, what might this indicate?")
-3.  An **interpretive question** about a specific action (e.g., "What is the psychological significance of a 'Duchenne smile'?")
-4.  A **'how-to' or application question** (e.g., "Based on the text, what are three ways to build rapport quickly?")
-5.  A **comparative question** (e.g., "What is the key difference between an emblem and an illustrator in body language?")
-
-RULES:
--   Choose a different type of question for each new text chunk you process to ensure variety.
--   The response MUST be grounded exclusively in the provided text. Do not invent information.
--   Keep the instruction and the response clear, accurate, and concise.
--   Your final output must be ONLY a single, valid JSON object with two keys: "instruction" and "output". Do not add explanations or markdown formatting like \`\`\`json.
-
-Here is the text chunk:
----
-${context}
----`;
-
-            const messages = [{ role: "user", content: systemPrompt }]; // Simplified message structure
-
-            const targetDisplay = targetPairs > 0 ? `/${targetPairs}` : '';
-            const statusPrefix = `Generating with ${selectedModel} (Pair ${currentPairs + 1}${targetDisplay})...`;
-            updateStatus(statusPrefix);
+            const messages = [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+            ];
 
             try {
                 const response = await fetch(`${baseURL}/chat/completions`, {
-                    method: "POST", headers: headers,
-                    body: JSON.stringify({ model: selectedModel, messages: messages, response_format: { type: "json_object" } }),
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify({
+                        model: selectedModel,
+                        messages: messages,
+                        response_format: { type: "json_object" }
+                    }),
                 });
-                if (!response.ok) { const errorBody = await response.text(); let detail = errorBody; try { detail = JSON.parse(errorBody).error?.message || errorBody; } catch (e) {/* ignore */ } throw new Error(`API Error: ${response.status} ${response.statusText} - ${detail}`); }
+
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        updateStatus("Rate limit exceeded. Pausing before retry...", true);
+                        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY * 2));
+                        return { error: 'rate_limit', message: 'Rate limit exceeded.' };
+                    }
+                    const errorBody = await response.text();
+                    let detail = errorBody;
+                    try { detail = JSON.parse(errorBody).error?.message || errorBody; } catch (e) {}
+                    throw new Error(`API Error: ${response.status} ${response.statusText} - ${detail}`);
+                }
 
                 const completion = await response.json();
                 const rawContent = completion.choices[0]?.message?.content?.trim();
-                 if (!rawContent) { throw new Error("API Error: Received an empty response from the model."); }
-                updateStatus(`Received response from ${selectedModel}. Parsing...`);
+                if (!rawContent) {
+                    throw new Error("API Error: Received an empty response from the model.");
+                }
 
                 let parsedJson = JSON.parse(rawContent);
                 if (typeof parsedJson !== 'object' || !parsedJson.instruction || !parsedJson.output) {
                     throw new Error("Parsed JSON does not contain required 'instruction' and 'output' keys.");
                 }
-                return parsedJson;
+                return {
+                    ...parsedJson,
+                    template_type: promptTemplates[templateIndex].type,
+                    source_book: book
+                };
 
             } catch (error) {
                 console.error(`Error with API call or parsing:`, error);
-                updateStatus(`Error: ${error.message}`);
+                updateStatus(`Error: ${error.message}`, true);
                 return { error: 'api_or_parse_error', message: error.message };
             }
         }
 
-
-        // --- PDF Processing & Generation Logic (MODIFIED) ---
+        // PDF Processing
         async function processPDFs(apiKey) {
+            let templateIndex = 0;
             for (let fileIndex = 0; fileIndex < pdfFiles.length; fileIndex++) {
                 if (!isProcessing) break;
                 const file = pdfFiles[fileIndex];
@@ -897,7 +978,10 @@ ${context}
                     updateStatus(`Loaded ${file.name} (${pdfDoc.numPages} pages). Extracting text...`);
                     const startPage = PAGES_TO_SKIP_START + 1;
                     const endPage = pdfDoc.numPages - PAGES_TO_SKIP_END;
-                    if (startPage > endPage) { updateStatus(`Skipping ${file.name}: Not enough pages.`); continue; }
+                    if (startPage > endPage) {
+                        updateStatus(`Skipping ${file.name}: Not enough pages.`, true);
+                        continue;
+                    }
 
                     let fullText = '';
                     for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
@@ -905,9 +989,8 @@ ${context}
                         const textContent = await page.getTextContent();
                         fullText += textContent.items.map(item => item.str).join(' ') + '\n';
                     }
-                    fullText = fullText.replace(/\s+/g, ' ').trim(); // Clean up the full text
+                    fullText = fullText.replace(/\s+/g, ' ').trim();
 
-                    // Simple chunking strategy: split the text into chunks of ~2500 chars
                     const chunkSize = 2500;
                     const textChunks = [];
                     for (let i = 0; i < fullText.length; i += chunkSize) {
@@ -915,54 +998,57 @@ ${context}
                     }
                     updateStatus(`Split ${file.name} into ${textChunks.length} text chunks.`);
 
-                    for (let chunkIndex = 0; chunkIndex < textChunks.length; chunkIndex++) {
-                        if (!isProcessing) break; // Check for stop request
+                    for (let chunkIndex = 0; chunkIndex < textChunks.length; chunkIndex += BATCH_SIZE) {
+                        if (!isProcessing) break;
 
-                        const context = textChunks[chunkIndex];
-                        const generatedPair = await callOpenRouterAPI(apiKey, context);
+                        const batch = textChunks.slice(chunkIndex, chunkIndex + BATCH_SIZE);
+                        const batchPromises = batch.map((context, idx) => {
+                            const currentTemplateIndex = (templateIndex + idx) % promptTemplates.length;
+                            return callOpenRouterAPI(apiKey, context, file.name, currentTemplateIndex);
+                        });
 
-                        if (generatedPair && !generatedPair.error) {
-                             // Add extra metadata for fine-tuning
-                            const finalObject = {
-                                source_book: file.name,
-                                system: "You are a helpful assistant specialized in psychology, body language, and human behavior.",
-                                instruction: generatedPair.instruction,
-                                output: generatedPair.output
-                            };
-
-                            instructionDataset.push(finalObject);
-                            currentPairs++;
-                            updateOutput();
-                        } else {
-                            updateStatus(`Skipping chunk due to error: ${generatedPair?.message || 'Unknown error'}.`);
-                             if (generatedPair?.error === 'config_error') {
-                                isProcessing = false; // Stop on critical config errors
+                        const results = await Promise.all(batchPromises);
+                        results.forEach((result, idx) => {
+                            if (result && !result.error) {
+                                instructionDataset.push({
+                                    source_book: file.name,
+                                    system: "You are a helpful assistant specialized in cognitive psychology, persuasion, and human behavior.",
+                                    instruction: result.instruction,
+                                    output: result.output,
+                                    template_type: result.template_type
+                                });
+                                currentPairs++;
+                                updateOutput();
+                            } else if (result.error !== 'rate_limit') {
+                                updateStatus(`Skipping chunk due to error: ${result?.message || 'Unknown error'}.`, true);
+                                if (result?.error === 'config_error') {
+                                    isProcessing = false;
+                                }
                             }
-                        }
+                        });
 
-                        // Check if target is reached
+                        templateIndex = (templateIndex + batch.length) % promptTemplates.length;
                         if (targetPairs > 0 && currentPairs >= targetPairs) {
                             isProcessing = false;
+                            break;
                         }
-                        
-                        await new Promise(resolve => setTimeout(resolve, 500)); // Rate limit delay
-                    } // End chunk loop
+
+                        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+                    }
 
                 } catch (pdfError) {
                     console.error(`Error processing PDF ${file.name}:`, pdfError);
-                    updateStatus(`Error processing PDF ${file.name}: ${pdfError.message}. Skipping.`);
+                    updateStatus(`Error processing PDF ${file.name}: ${pdfError.message}. Skipping.`, true);
                 } finally {
                     URL.revokeObjectURL(objectUrl);
                     if (pdfDoc) await pdfDoc.destroy();
                 }
-                if (!isProcessing) break; // Exit file loop if stopped
-            } // End file loop
+                if (!isProcessing) break;
+            }
         }
-
 
         function updateOutput() {
             try {
-                 // To avoid crashing the browser with huge datasets, show only the last 50 items.
                 const previewData = instructionDataset.slice(-50);
                 const previewText = previewData.map(item => JSON.stringify(item)).join('\n');
                 outputTextArea.value = `Displaying last ${previewData.length} of ${instructionDataset.length} total pairs...\n\n` + previewText;
@@ -974,8 +1060,7 @@ ${context}
             }
         }
 
-
-        // --- Control Button States (Unchanged logic, but essential) ---
+        // Control Button States
         function updateButtonStates() {
             const hasData = instructionDataset.length > 0;
             startButton.disabled = isProcessing;
@@ -993,59 +1078,14 @@ ${context}
             downloadButton.disabled = isProcessing || !hasData;
         }
 
-
-        // --- Start & Stop Button Logic (MODIFIED for new flow) ---
+        // Start & Stop Buttons
         startButton.addEventListener('click', async () => {
-            const apiKey = apiKeyInput.value.trim(); if (!apiKey) { updateStatus("Error: API Key is required.", true); return; } if (pdfFiles.length === 0) { updateStatus("Error: Please select at least one PDF file.", true); return; } if (!modelSelect.value) { updateStatus("Error: Please select a model.", true); return; }
-            targetPairs = parseInt(targetPairsInput.value, 10) || 0; if (targetPairs < 0) targetPairs = 0; targetPairsInput.value = targetPairs;
-
-            isProcessing = true;
-            stopRequested = false;
-            currentPairs = 0;
-            instructionDataset = [];
-            outputTextArea.value = '';
-
-            updateButtonStates();
-            updateStatus(`Starting processing... Target: ${targetPairs > 0 ? targetPairs : 'unlimited'} pairs.`);
-
-            try {
-                await processPDFs(apiKey); // Run the core logic
-
-                if (stopRequested) {
-                    updateStatus(`Processing stopped by user (${currentPairs} pairs generated).`);
-                } else if (targetPairs > 0 && currentPairs >= targetPairs) {
-                    updateStatus(`Target of ${targetPairs} pairs reached. Auto-downloading...`);
-                    triggerDownload();
-                } else {
-                    updateStatus(`Processing finished naturally (${currentPairs} pairs generated).`);
-                }
-
-            } catch (error) {
-                 updateStatus(`CRITICAL ERROR: ${error.message}`, true);
-                 console.error("Critical error in startButton handler:", error);
-            } finally {
-                isProcessing = false;
-                stopRequested = false;
-                updateButtonStates(); // Re-enable controls
-            }
-        });
-
-        stopButton.addEventListener('click', () => {
-            if (!isProcessing) return;
-            stopRequested = true;
-            isProcessing = false; // This will stop the loops
-            updateStatus("Stop requested... Finishing current API call and stopping.");
-        });
-
-        // --- Initial State ---
-        updateStatus("Idle. Select PDF(s), enter API key, choose model, and set target pairs.");
-        updateButtonStates();
-
-    </script>
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
 
 
 </body>
-
+                </html>
 
 
 </html>
