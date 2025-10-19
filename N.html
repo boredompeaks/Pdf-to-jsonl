@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cognitive Psychology Dataset Generator</title>
+    <title>Relationship Psychology Dataset Generator</title>
     <style>
         /* --- Google Font Import --- */
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap');
@@ -206,10 +206,10 @@
 
 <body>
     <div class="container">
-        <h1>Cognitive Psychology Dataset Generator</h1>
+        <h1>Relationship Psychology Dataset Generator</h1>
 
         <div id="dropZone" onclick="document.getElementById('fileInput').click();">
-            Drag & Drop Cognitive Psychology PDFs here, or click to select files. (Max 10)
+            Drag & Drop Relationship Psychology PDFs here, or click to select files. (Max 10)
         </div>
         <input type="file" id="fileInput" class="hidden-file-input" multiple accept=".pdf">
 
@@ -221,6 +221,7 @@
             <div>
                 <label for="modelSelect">Select Model:</label>
                 <select id="modelSelect">
+                    <option value="moonshotai/kimi-k2:free">moonshotai Kimi-K2 (Free)</option>
                     <option value="google/gemini-2.0-flash-001">Google Gemini </option>
                     <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
                     <option value="google/gemini-flash-1.5">Google Gemini 1.5 Flash</option>
@@ -366,7 +367,7 @@
                 const a = document.createElement('a');
                 a.href = url;
                 const modelNameSanitized = modelSelect.value.replace(/[^a-z0-9_-]/gi, '_');
-                a.download = `cogsci_dataset_${currentPairs}_${modelNameSanitized}.jsonl`;
+                a.download = `relational_dataset_${currentPairs}_${modelNameSanitized}.jsonl`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -387,21 +388,33 @@
             const baseURL = "https://openrouter.ai/api/v1";
             const headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" };
             
-            const systemPrompt = `You are an expert in cognitive psychology, specializing in persuasion and human behavior as described in books like "Influence", "Thinking, Fast and Slow", and "Nudge". Your task is to transform a raw text segment into a single, concise instruction-response pair in JSON format with "instruction" and "output" keys. Focus exclusively on cognitive psychology concepts.
+            // NEW SYSTEM PROMPT
+            const systemPrompt = `You are an expert in relationship psychology, specializing in attachment and dynamics as described in books like Attached, Hold Me Tight, The Seven Principles for Making Marriage Work, and The 5 Love Languages. Your task is to transform a raw text segment from a book into a single, concise instruction-response pair in JSON format with 'instruction', 'output', and 'template_type' keys, focusing exclusively on relationship concepts. Avoid non-psychology domains unless they relate to relational applications (e.g., communication, conflict resolution).
 
-RULES:
-- Generate an interaction that matches the requested template type.
-- The response MUST be grounded exclusively in the provided text; do not invent information.
-- Keep the instruction and output clear, accurate, and concise.
-- Output ONLY a single, valid JSON object.
-- do not input any invalid caacters. that are not recognized by jsonl,only output a single json object `;
+For each text chunk, dynamically choose ONE of the following interaction types to ensure variety:
+1. Definitional question (e.g., 'Define anxious attachment style.').
+2. Scenario-based question (e.g., 'A partner withdraws during arguments. How to respond?').
+3. Interpretive question about a behavior (e.g., 'What does stonewalling indicate in relationships?').
+4. How-to or application question (e.g., 'What are three ways to build secure attachment?').
+5. Comparative question (e.g., 'What is the key difference between love languages and attachment styles?').
+6. Real-World Application (e.g., 'Where can I observe the four horsemen in daily interactions?').
+
+Rules:
+- Select a different interaction type for each text chunk to maximize variety.
+- Generate both the question (instruction) and the answer (output) based on the provided text.
+- The response must be grounded exclusively in the provided text; do not invent information.
+- Keep the instruction and output clear, accurate, and concise (100-200 tokens total).
+- Include a 'template_type' field in the JSON output to indicate the chosen interaction type: 'Define & Explain', 'Analyze & Deconstruct', 'Compare & Contrast', 'Real-World Application', or 'Creative Synthesis'.
+- Output a single, valid JSON object with 'instruction', 'output', and 'template_type' keys.
+
+Text chunk:
+---
+\${context}
+---`;
             
             const userPrompt = `Template: ${templateType}
 Source: ${book}
-Text Chunk:
----
-${context}
----`;
+Generate the JSON object based on the rules and the text provided in the system prompt.`;
 
             try {
                 const response = await fetch(`${baseURL}/chat/completions`, {
@@ -424,16 +437,16 @@ ${context}
                 if (!rawContent) throw new Error("API returned an empty response.");
 
                 const parsedJson = JSON.parse(rawContent);
-                if (!parsedJson.instruction || !parsedJson.output) {
-                    throw new Error("Parsed JSON lacks 'instruction' or 'output' keys.");
+                if (!parsedJson.instruction || !parsedJson.output || !parsedJson.template_type) {
+                    throw new Error("Parsed JSON lacks 'instruction', 'output', or 'template_type' keys.");
                 }
 
                 return {
                     source_book: book,
-                    system: "You are a helpful assistant specialized in cognitive psychology, persuasion, and human behavior.",
+                    system: "You are a helpful assistant specialized in relationship psychology, attachment, and dynamics.",
                     instruction: parsedJson.instruction,
                     output: parsedJson.output,
-                    template_type: templateType
+                    template_type: parsedJson.template_type
                 };
 
             } catch (error) {
@@ -445,7 +458,15 @@ ${context}
 
         // --- PDF Processing & Generation Logic ---
         async function processPDFs(apiKey) {
-            const promptTypes = ["Define & Explain", "Analyze & Deconstruct", "Compare & Contrast", "Real-World Application", "Creative Synthesis"];
+            // Mapping from the 6 interaction types to the 5 template types for the final JSON
+            const promptTypeMapping = [
+                { instructionType: "Definitional question", templateType: "Define & Explain" },
+                { instructionType: "Scenario-based question", templateType: "Analyze & Deconstruct" },
+                { instructionType: "Interpretive question about a behavior", templateType: "Analyze & Deconstruct" },
+                { instructionType: "How-to or application question", templateType: "Creative Synthesis" },
+                { instructionType: "Comparative question", templateType: "Compare & Contrast" },
+                { instructionType: "Real-World Application", templateType: "Real-World Application" }
+            ];
             let promptTypeIndex = 0;
 
             for (const file of pdfFiles) {
@@ -488,9 +509,10 @@ ${context}
                         
                         const batch = textChunks.slice(i, i + BATCH_SIZE);
                         const promises = batch.map(chunk => {
-                            const templateType = promptTypes[promptTypeIndex % promptTypes.length];
+                            // Cycle through the 6 instruction types
+                            const { instructionType, templateType } = promptTypeMapping[promptTypeIndex % promptTypeMapping.length];
                             promptTypeIndex++;
-                            return callOpenRouterAPI(apiKey, chunk, file.name, templateType);
+                            return callOpenRouterAPI(apiKey, chunk, file.name, instructionType, templateType);
                         });
 
                         const results = await Promise.all(promises);
